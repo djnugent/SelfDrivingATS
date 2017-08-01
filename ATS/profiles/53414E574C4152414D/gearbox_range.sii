@@ -1,0 +1,135 @@
+SiiNunit
+{
+direct_gearbox_config : _nameless.0000.0034.E1AC.3980 {
+ name: "Eaton Fuller 10-speed"
+ clutch_mode: analog
+ gears: 14
+ gears[0]: _nameless.0000.0034.E0E3.B4B0
+ gears[1]: _nameless.0000.0034.E0E3.C530
+ gears[2]: _nameless.0000.0034.E0E3.B390
+ gears[3]: _nameless.0000.0034.E0E3.BA50
+ gears[4]: _nameless.0000.0034.E0E3.B510
+ gears[5]: _nameless.0000.0034.E0E3.BD50
+ gears[6]: _nameless.0000.0034.E0E3.C770
+ gears[7]: _nameless.0000.0034.E0E3.B570
+ gears[8]: _nameless.0000.0034.E0E3.B810
+ gears[9]: _nameless.0000.0034.E0E3.B8D0
+ gears[10]: _nameless.0000.0034.E0E3.BE10
+ gears[11]: _nameless.0000.0034.E0E3.BE70
+ gears[12]: _nameless.0000.0034.E0E3.BF30
+ gears[13]: _nameless.0000.0034.E0E3.BF90
+}
+
+direct_gearbox_gear : _nameless.0000.0034.E0E3.B4B0 {
+ gear_impulse_index: 0
+ selector_1: -1
+ selector_2: -1
+ gear: 0
+ name: N
+}
+
+direct_gearbox_gear : _nameless.0000.0034.E0E3.C530 {
+ gear_impulse_index: 2
+ selector_1: 0
+ selector_2: -1
+ gear: -1
+ name: RL
+}
+
+direct_gearbox_gear : _nameless.0000.0034.E0E3.B390 {
+ gear_impulse_index: 2
+ selector_1: 1
+ selector_2: -1
+ gear: -2
+ name: RH
+}
+
+direct_gearbox_gear : _nameless.0000.0034.E0E3.BA50 {
+ gear_impulse_index: 3
+ selector_1: 0
+ selector_2: -1
+ gear: 1
+ name: 1
+}
+
+direct_gearbox_gear : _nameless.0000.0034.E0E3.B510 {
+ gear_impulse_index: 4
+ selector_1: 0
+ selector_2: -1
+ gear: 2
+ name: 2
+}
+
+direct_gearbox_gear : _nameless.0000.0034.E0E3.BD50 {
+ gear_impulse_index: 5
+ selector_1: 0
+ selector_2: -1
+ gear: 3
+ name: 3
+}
+
+direct_gearbox_gear : _nameless.0000.0034.E0E3.C770 {
+ gear_impulse_index: 6
+ selector_1: 0
+ selector_2: -1
+ gear: 4
+ name: 4
+}
+
+direct_gearbox_gear : _nameless.0000.0034.E0E3.B570 {
+ gear_impulse_index: 7
+ selector_1: 0
+ selector_2: -1
+ gear: 5
+ name: 5
+}
+
+direct_gearbox_gear : _nameless.0000.0034.E0E3.B810 {
+ gear_impulse_index: 3
+ selector_1: 1
+ selector_2: -1
+ gear: 6
+ name: 6
+}
+
+direct_gearbox_gear : _nameless.0000.0034.E0E3.B8D0 {
+ gear_impulse_index: 4
+ selector_1: 1
+ selector_2: -1
+ gear: 7
+ name: 7
+}
+
+direct_gearbox_gear : _nameless.0000.0034.E0E3.BE10 {
+ gear_impulse_index: 5
+ selector_1: 1
+ selector_2: -1
+ gear: 8
+ name: 8
+}
+
+direct_gearbox_gear : _nameless.0000.0034.E0E3.BE70 {
+ gear_impulse_index: 6
+ selector_1: 1
+ selector_2: -1
+ gear: 9
+ name: 9
+}
+
+direct_gearbox_gear : _nameless.0000.0034.E0E3.BF30 {
+ gear_impulse_index: 7
+ selector_1: 1
+ selector_2: -1
+ gear: 10
+ name: 10
+}
+
+direct_gearbox_gear : _nameless.0000.0034.E0E3.BF90 {
+ gear_impulse_index: 1
+ selector_1: -1
+ selector_2: -1
+ gear: 0
+ name: ""
+}
+
+}

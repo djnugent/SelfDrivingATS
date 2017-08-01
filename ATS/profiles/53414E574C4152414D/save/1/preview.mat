@@ -1,0 +1,5 @@
+material : "ui.fx"
+{
+	texture : "/material/ui/generic_save.tobj"
+	texture_name : "texture"
+}
