@@ -13,7 +13,7 @@ class speed:
         self.svm = None
 
     def load(self):
-        self.svm = joblib.load("ocr.pkl")
+        self.svm = joblib.load("../pretrained_models/ocr.pkl")
 
     def train_svm(self,regex="*-*.png"):
 

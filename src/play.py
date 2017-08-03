@@ -36,7 +36,7 @@ else:
 
 # model
 print("loading model...")
-model = load_model("model.h5",custom_objects={'mean_precision_error': mean_precision_error})
+model = load_model("../pretrained_models/model.h5",custom_objects={'mean_precision_error': mean_precision_error})
 print("done")
 
 
@@ -77,14 +77,14 @@ buff = []
 
 
 def hud_speed(img):
-    #img = img[428:435,775:787]
-    img = img[492:499,779:791]
+    #img = img[492:499,779:791] # standard HUD
+    img = img[68:75,402:414] # modded HUD
     spd= spd_ocr.predict(img)
     return spd
 
 def hud_speed_limit(img):
-    #img = img[529:536,773:785]
-    img = img[593:600,777:789]
+    #img = img[593:600,777:789] # standard HUD
+    img = img[87:94,400:413] # modded HUD
     # Check to see that white speed limit icon is present
     if np.mean(img) > 130:
         img = (225 - img) #invert image
