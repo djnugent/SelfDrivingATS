@@ -11,7 +11,6 @@ import os
 import imageio
 import threading
 from keras.models import load_model
-from train import preprocess
 from model import mean_precision_error
 
 parser = argparse.ArgumentParser(description='Run ATS interface')
@@ -57,8 +56,9 @@ max_int = 0.15
 flash_rate = 0.4
 # Recording buffer size
 buffer_size = 40
-# Record rate
+# Recording
 record_rate = 3
+reaction_delay = 0.315 # seconds
 
 # State variable
 steering = 0
@@ -91,6 +91,10 @@ def hud_speed_limit(img):
         spd_limit = spd_ocr.predict(img)
         return spd_limit
     return None
+
+def save_img(loc,img):
+    time.sleep(t)
+    imageio.imwrite(loc,img)
 
 
 # wait to enter the game
