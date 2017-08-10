@@ -259,4 +259,4 @@ if __name__=="__main__":
                 validation_data=validation_generator, \
                 nb_val_samples=test_epoch_size, nb_epoch=epochs)
 
-    model.save("model.h5")
+    model.save("../pretrained_models/model.h5")

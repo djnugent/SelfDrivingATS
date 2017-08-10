@@ -3,23 +3,88 @@ import time
 import winsound
 import math
 import cv2
-from speed import speed
 import numpy as np
 import argparse
 import datetime
 import os
 import imageio
 import threading
+import requests
 from keras.models import load_model
 from model import mean_precision_error
 
+
+#*********************************************************************
+#-------------------------------- Params -----------------------------
+#*********************************************************************
+# Mouse bounds
+bounds = [600,1000]
+# Keyboard steering
+step = 0.015
+decay = 0.01
+# Main loop max frequency
+update_rate = 30
+# Cruise control pid
+kP = 0.1
+kI = 0.01
+kFF = 0.0089
+max_int = 0.15
+# How fast to transition headlight patterns
+flash_rate = 1 #hz
+# Recording
+record_rate = 4 # hz
+reaction_time = 0.315 # seconds
+record_delay = 2 # seconds
+# ATS telemetry server
+API_URL = "http://127.0.0.1:25555/api/ets2/telemetry"
+
+#*********************************************************************
+#---------------------------- State Variables ------------------------
+#*********************************************************************
+steering = 0
+throttle = 0
+i_term = 0
+cruise_speed = 0
+cruise_control = False
+autopilot = False
+recording = False
+last_update = 0
+last_record = 0
+last_flash = 0
+light_state = 0
+fps = 20
+
+
+#*********************************************************************
+#-------------------------------- Functions --------------------------
+#*********************************************************************
+
+def record_entry(_timestamp,_screen,_throttle,_speed,_speed_limit,_fps,_cruise_control):
+    global recording
+    # delay to grab mouse to account for reaction time
+    time.sleep(reaction_time)
+    mouse = cap.mouse()
+    _steering = max(-1,min((mouse[0] - 800)/200.0,1))
+    # Delay saving entry in order to shave off the last # seconds on recording
+    # This is here incase we crash and dont want the last few seconds
+    time.sleep(record_delay)
+    if recording:
+        utc_datetime = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S.%f")
+        filename = "ats-" + utc_datetime + ".png"
+        # Write image
+        imageio.imwrite(args.dir + "/" + filename,_screen,compression=1)
+        # Add entry to text file
+        txt = "{}, {}, {}, {}, {}, {}, {}, {}\n".format(_timestamp,filename,_steering,_throttle,_speed,_speed_limit,_fps,_cruise_control)
+        labels.write(txt)
+        labels.flush()
+
+#*********************************************************************
+#-------------------------------- Start up ---------------------------
+#*********************************************************************
 parser = argparse.ArgumentParser(description='Run ATS interface')
 parser.add_argument('dir', help='Dataset record directory')
 args = parser.parse_args()
 
-# Speed parser
-spd_ocr = speed()
-spd_ocr.load()
 # Create virtual joystick
 ctrl.create_joystick()
 
@@ -38,64 +103,20 @@ print("loading model...")
 model = load_model("../pretrained_models/model.h5",custom_objects={'mean_precision_error': mean_precision_error})
 print("done")
 
+# Wait for ATS telemetry server
+print("Waiting for ATS telemetry server...")
+while True:
+    try:
+        requests.get(API_URL)
+        break
+    except requests.exceptions.ConnectionError:
+        time.sleep(0.4)
 
-# Params
-# Mouse bounds
-bounds = [600,1000]
-# Keyboard steering
-step = 0.015
-decay = 0.01
-# Main loop max frequency
-update_rate = 30
-# Cruise control pid
-kP = 0.1
-kI = 0.01
-kFF = 0.0089
-max_int = 0.15
-# How fast to transition headlight patterns
-flash_rate = 0.4
-# Recording buffer size
-buffer_size = 40
-# Recording
-record_rate = 3
-reaction_delay = 0.315 # seconds
-
-# State variable
-steering = 0
-throttle = 0
-i_term = 0
-cruise_speed = 0
-cruise_control = False
-autopilot = False
-recording = False
-last_update = 0
-last_record = 0
-last_flash = 0
-light_state = 0
-fps = 20
-buff = []
-
-
-def hud_speed(img):
-    #img = img[492:499,779:791] # standard HUD
-    img = img[68:75,402:414] # modded HUD
-    spd= spd_ocr.predict(img)
-    return spd
-
-def hud_speed_limit(img):
-    #img = img[593:600,777:789] # standard HUD
-    img = img[87:94,400:413] # modded HUD
-    # Check to see that white speed limit icon is present
-    if np.mean(img) > 130:
-        img = (225 - img) #invert image
-        spd_limit = spd_ocr.predict(img)
-        return spd_limit
-    return None
-
-def save_img(loc,img):
-    time.sleep(t)
-    imageio.imwrite(loc,img)
-
+# Wait for game to open
+if requests.get(API_URL).json()["game"]["connected"] == False:
+    print("Please start ATS...")
+    while requests.get(API_URL).json()["game"]["connected"] == False:
+        time.sleep(0.4)
 
 # wait to enter the game
 print("Press G to start")
@@ -104,7 +125,9 @@ while not 'g' in cap.keyboard():
 # Center mouse upon starting
 ctrl.mouse((800,450))
 
-## Main loop
+#*********************************************************************
+#-------------------------------- Main Loop --------------------------
+#*********************************************************************
 while True:
     if time.time()-last_update > 1.0/update_rate:
         dt = time.time()-last_update
@@ -117,12 +140,13 @@ while True:
         timestamp = time.time()
         try:
             screen = cap.screen(window="American Truck Simulator", padding =[6,6,28,6])
-            #cv2.imshow("img",screen)
-            #cv2.waitKey(0)
         except ValueError:
             continue
-        speed = hud_speed(screen)
-        speed_limit = hud_speed_limit(screen)
+
+        # Get speed/speed_limit from ATS telemetry API
+        _data = requests.get(API_URL).json()
+        speed = _data["truck"]["speed"] / 1.609344 #kph -> mph
+        speed_limit = round(_data["navigation"]["speedLimit"]  / 1.609344) #kph -> mph
 
         # Check for change in control(autopilot vs manual)
         if "home" in keys:
@@ -132,6 +156,7 @@ while True:
                 cap.keyboard()
             else:
                 autopilot = True
+                recording = False
                 time.sleep(0.2)
                 cap.keyboard()
 
@@ -170,7 +195,7 @@ while True:
             if 'c' in keys and not cruise_control:
                 cruise_control = True
                 # set speed
-                if speed_limit is not None:
+                if speed_limit != 0:
                     cruise_speed = speed_limit
                 else:
                     cruise_speed = speed
@@ -185,7 +210,7 @@ while True:
                 if "s" in keys:
                     cruise_speed = max(0,cruise_speed - 5)
                 # Set to speed limit
-                if 'c' in keys and speed_limit is not None:
+                if 'c' in keys and speed_limit != 0:
                     cruise_speed = speed_limit
                 # Disable cruise control
                 if "x" in keys:
@@ -225,29 +250,14 @@ while True:
                 else:
                     winsound.MessageBeep(winsound.MB_ICONEXCLAMATION)
                     recording = True
-                    buff = []
                     time.sleep(0.2)
                     cap.keyboard()
 
             if recording:
+                # Record Entry in another thread in order to capture user reaction time and drop the last few frames
                 if time.time() - last_record > 1.0/record_rate:
                     last_record = time.time()
-                    # Create a new entry in buffer
-                    entry = [timestamp,screen,steering,throttle,speed,speed_limit,fps,cruise_control]
-                    buff = [entry] + buff[:buffer_size-1]
-                    # Save oldest entry in buffer to account for delay of when I crash to when I stop recording
-                    try:
-                        _timestamp,_screen,_steering,_throttle,_speed,_speed_limit,_fps,_cruise_control = buff[buffer_size-1]
-                        utc_datetime = datetime.datetime.utcnow().strftime("%Y-%m-%d-%H-%M-%S.%f")
-                        filename = "ats-" + utc_datetime + ".png"
-                        # Write image
-                        threading.Thread(target=imageio.imwrite, args = (args.dir + "/" + filename,_screen), kwargs={'compression':0}).start()
-                        # Add entry to text file
-                        txt = "{}, {}, {}, {}, {}, {}, {}, {}\n".format(_timestamp,filename,_steering,_throttle,_speed,_speed_limit,_fps,_cruise_control)
-                        labels.write(txt)
-                        labels.flush()
-                    except IndexError:
-                        pass
+                    threading.Thread(target=record_entry, args = (timestamp,screen,throttle,speed,speed_limit,fps,cruise_control)).start()
 
                 # Flash lights for various lighting patterns
                 if time.time() - last_flash > 1.0/flash_rate:
@@ -274,4 +284,4 @@ while True:
         else:
             c_speed = "DISABLED"
         fmt = "[ {} ] fps: {}, steering: {}, throttle: {}, speed: {}, speed limit: {}, cruise control: {}"
-        print(fmt.format(mode,round(fps),round(steering,2),round(throttle,2),speed,speed_limit,c_speed))
+        print(fmt.format(mode,round(fps),round(steering,2),round(throttle,2),round(speed,1),speed_limit,c_speed))
