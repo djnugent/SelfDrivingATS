@@ -40,6 +40,8 @@ I can screen cap the game window at ~15 fps. I also have access to the current s
 
 ![](res/setup.jpg)
 
+*Coat hangers + arduino + potentiometer + 1 hour*
+
 I can control the truck throttle using the keyboard or a PID cruise control. I usually use cruise control for an easier driving experience and for continuous throttle control(for recording).
 
 ### Recording
