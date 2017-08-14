@@ -10,8 +10,10 @@ import os
 import imageio
 import threading
 import requests
+import serial
+import struct
 from keras.models import load_model
-from model import mean_precision_error
+from model import mean_precision_error, extract_camera, extract_minimap
 
 
 #*********************************************************************
@@ -22,6 +24,8 @@ bounds = [600,1000]
 # Keyboard steering
 step = 0.015
 decay = 0.01
+# Wheel steering
+steering_expo = 3
 # Main loop max frequency
 update_rate = 30
 # Cruise control pid
@@ -59,12 +63,14 @@ fps = 20
 #-------------------------------- Functions --------------------------
 #*********************************************************************
 
-def record_entry(_timestamp,_screen,_throttle,_speed,_speed_limit,_fps,_cruise_control):
+def record_entry(_timestamp,_screen,_steering,_throttle,_speed,_speed_limit,_fps,_cruise_control):
     global recording
+    global steering
     # delay to grab mouse to account for reaction time
     time.sleep(reaction_time)
-    mouse = cap.mouse()
-    _steering = max(-1,min((mouse[0] - 800)/200.0,1))
+    _steering = steering
+    #mouse = cap.mouse()
+    #_steering = max(-1,min((mouse[0] - 800)/200.0,1))
     # Delay saving entry in order to shave off the last # seconds on recording
     # This is here incase we crash and dont want the last few seconds
     time.sleep(record_delay)
@@ -87,6 +93,10 @@ args = parser.parse_args()
 
 # Create virtual joystick
 ctrl.create_joystick()
+
+# Connect to steering wheel
+wheel = serial.Serial('COM5',9600)
+
 
 # initialize dataset log
 if not os.path.exists(args.dir):
@@ -162,8 +172,9 @@ while True:
 
         # autopilot mode
         if autopilot:
-            img = preprocess(screen)
-            steering = float(model.predict(img[None, :, :, :], batch_size=1))
+            camera,roi = extract_camera(screen)
+            minimap,roi = extract_minimap(screen)
+            steering = float(model.predict([camera[None,:,:,:],minimap[None,:,:,:]], batch_size=1))
             throttle = 0.5
         # manual mode
         else:
@@ -183,11 +194,23 @@ while True:
                     steering = min(0,steering+decay)
             '''
             ## Control steering with mouse
+            '''
             if mouse[0] < bounds[0]:
                 ctrl.mouse((bounds[0],mouse[1]))
             if mouse[0] > bounds[1]:
                 ctrl.mouse((bounds[1],mouse[1]))
+
             steering = max(-1,min((mouse[0] - 800)/200.0,1))
+            '''
+            ## Control steering with wheel
+            # Request steering angle
+            wheel.write(struct.pack('b',0x45))
+            wheel.flush()
+            # Read angle
+            steering = struct.unpack('<H',wheel.read(2))[0] / 511.5 - 1
+            # Apply expo
+            steering = abs(pow(steering,steering_expo))/steering
+
 
 
             ## Cruise Control
@@ -257,7 +280,7 @@ while True:
                 # Record Entry in another thread in order to capture user reaction time and drop the last few frames
                 if time.time() - last_record > 1.0/record_rate:
                     last_record = time.time()
-                    threading.Thread(target=record_entry, args = (timestamp,screen,throttle,speed,speed_limit,fps,cruise_control)).start()
+                    threading.Thread(target=record_entry, args = (timestamp,screen,steering,throttle,speed,speed_limit,fps,cruise_control)).start()
 
                 # Flash lights for various lighting patterns
                 if time.time() - last_flash > 1.0/flash_rate:
@@ -284,4 +307,4 @@ while True:
         else:
             c_speed = "DISABLED"
         fmt = "[ {} ] fps: {}, steering: {}, throttle: {}, speed: {}, speed limit: {}, cruise control: {}"
-        print(fmt.format(mode,round(fps),round(steering,2),round(throttle,2),round(speed,1),speed_limit,c_speed))
+        print(fmt.format(mode,round(fps),round(steering,3),round(throttle,2),round(speed,1),speed_limit,c_speed))

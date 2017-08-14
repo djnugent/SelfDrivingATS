@@ -1,6 +1,6 @@
 SiiNunit
 {
-input_config : _nameless.25c.8b7b.4c20 {
+input_config : _nameless.25c.58fe.3b90 {
  version: 4
  config_lines: 305
  config_lines[0]: "device keyboard `di8.keyboard`"
@@ -187,7 +187,7 @@ input_config : _nameless.25c.8b7b.4c20 {
  config_lines[181]: "mix clutch `dclutch + normalize(sel(c_jzclutch, sel(c_jiclutch, -j_clutch?0, j_clutch?0), sel(c_jiclutch, j_clutch?1 * -0.5 + 0.5, j_clutch?-1 * 0.5 + 0.5)), c_clutch_dz)`"
  config_lines[182]: "mix activate `keyboard.enter?0`"
  config_lines[183]: "mix menu `keyboard.esc?0`"
- config_lines[184]: "mix engine ``"
+ config_lines[184]: "mix engine `keyboard.e?0`"
  config_lines[185]: "mix attach `keyboard.t?0`"
  config_lines[186]: "mix horn ``"
  config_lines[187]: "mix airhorn ``"
@@ -202,7 +202,7 @@ input_config : _nameless.25c.8b7b.4c20 {
  config_lines[196]: "mix retarderdown `keyboard.apostrophe?0`"
  config_lines[197]: "mix liftaxle ``"
  config_lines[198]: "mix liftaxlet ``"
- config_lines[199]: "mix diflock ``"
+ config_lines[199]: "mix diflock `keyboard.q?0`"
  config_lines[200]: "mix parkingbrake `keyboard.space?0`"
  config_lines[201]: "mix wippers ``"
  config_lines[202]: "mix cruiectrl ``"
@@ -215,7 +215,7 @@ input_config : _nameless.25c.8b7b.4c20 {
  config_lines[209]: "mix rblinker ``"
  config_lines[210]: "mix 4wayflasher ``"
  config_lines[211]: "mix showmirrors ``"
- config_lines[212]: "mix showhud ``"
+ config_lines[212]: "mix showhud `keyboard.f3?0`"
  config_lines[213]: "mix navmap `keyboard.m?0`"
  config_lines[214]: "mix quicksave `keyboard.num0?0`"
  config_lines[215]: "mix quickload `keyboard.numperiod?0`"

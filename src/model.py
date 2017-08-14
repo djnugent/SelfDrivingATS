@@ -143,5 +143,5 @@ def v2():
     model.add(Dense(10, activation='elu'))
     model.add(Dropout(0.50))
     model.add(Dense(1))
-    model.compile(loss='mse', optimizer='adam')
+    model.compile(loss=mean_precision_error, optimizer='adam')
     return model

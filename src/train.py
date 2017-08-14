@@ -3,9 +3,13 @@ import numpy as np
 import imageio
 import argparse
 import cv2
+import os
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
-from model import v2, extract_camera, extract_minimap
+from model import v2, extract_camera, extract_minimap, mean_precision_error
+from keras.callbacks import ModelCheckpoint
+from keras.models import load_model
+
 
 #TODO tune shift constants, update model topology, Add response delay
 
@@ -41,8 +45,9 @@ def gen(bins, batch_size=32):
         image = imageio.imread(filename)
 
         # Augment the sample
-        camera_image, minimap_image, steering, viz = augment(image,steering)
-
+        #camera_image, minimap_image, steering, viz = augment(image,steering)
+        camera_image,c_roi = extract_camera(image)
+        minimap_image,m_roi= extract_minimap(image)
         # Append to batch
         X_camera.append(camera_image)
         X_minimap.append(minimap_image)
@@ -214,6 +219,7 @@ if __name__=="__main__":
         header = next(reader)
         samples = [dict(zip(header, map(str, row))) for row in reader]
 
+    print("Found {} samples".format(len(samples)))
 
     # Split samples into training/test set
     print("Splitting data")
@@ -233,18 +239,15 @@ if __name__=="__main__":
 
     # Bin data based on steering angle
     print("Binning data")
-    num_bins = 71
+    num_bins = 313
     train_bins,train_max_bin_size = bin_samples(train_samples,num_bins)
     test_bins,test_max_bin_size = bin_samples(test_samples,num_bins)
 
     # Training parameters
     batch_size = 64
-    augmentation_factor = 2 #flip(2)
-    epochs = 4
-    train_epoch_size = int(len(train_samples) * (num_bins/20)/ batch_size) * batch_size
-    test_epoch_size = int(len(test_samples) * (num_bins/20) / batch_size) * batch_size
-    #train_epoch_size = int(num_bins * train_max_bin_size * augmentation_factor / batch_size) * batch_size
-    #test_epoch_size = int(num_bins * test_max_bin_size * augmentation_factor / batch_size) * batch_size
+    epochs = 400
+    train_epoch_size = int(len(train_samples) * (num_bins/420)/ batch_size) * batch_size
+    test_epoch_size = int(len(test_samples) * (num_bins/270) / batch_size) * batch_size
     print("Training samples: {}".format(train_epoch_size))
     print("Testing samples: {}".format(test_epoch_size))
 
@@ -252,11 +255,27 @@ if __name__=="__main__":
     train_generator = gen(train_bins, batch_size=batch_size)
     validation_generator = gen(test_bins, batch_size=batch_size)
 
+    # checkpoint
+    filepath="../pretrained_models/model.best.h5"
+    checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True)
+    callbacks_list = [checkpoint]
+
+
+    # model
+    model = None
+    print("loading model...")
+    if  os.path.exists("../pretrained_models/model.best.h5"):
+        print("Found model in progress. Resuming")
+        model = load_model("../pretrained_models/model.best.h5",custom_objects={'mean_precision_error': mean_precision_error})
+    else:
+        print("No model found. Creating new model")
+        model = v2()
+    print("done")
+
     # fit model
     print("Fitting model")
-    model = v2()
     model.fit_generator(train_generator, samples_per_epoch= train_epoch_size,\
                 validation_data=validation_generator, \
-                nb_val_samples=test_epoch_size, nb_epoch=epochs)
+                nb_val_samples=test_epoch_size, nb_epoch=epochs,callbacks=callbacks_list)
 
     model.save("../pretrained_models/model.h5")
