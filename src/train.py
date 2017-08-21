@@ -11,7 +11,11 @@ from keras.callbacks import ModelCheckpoint
 from keras.models import load_model
 
 
-#TODO tune shift constants, update model topology, Add response delay
+#TODO
+# Compare RGB vs YUV
+# Compare with and without normalization
+# Compare MPE vs MSE
+# Compare with and without augmentation
 
 parser = argparse.ArgumentParser(description='Train model')
 parser.add_argument('dir', help='Dataset directory')
@@ -22,7 +26,7 @@ args = parser.parse_args()
 # Randomly selects a bin
 # Randomly samples from bin
 # Randomly augment the sample
-def gen(bins, batch_size=32):
+def gen(bins, batch_size=32,augment=False):
     bin_num = len(bins)
     X_camera = []
     X_minimap = []
@@ -45,9 +49,11 @@ def gen(bins, batch_size=32):
         image = imageio.imread(filename)
 
         # Augment the sample
-        #camera_image, minimap_image, steering, viz = augment(image,steering)
-        camera_image,c_roi = extract_camera(image)
-        minimap_image,m_roi= extract_minimap(image)
+        if augment:
+            camera_image, minimap_image, steering, viz = augment(image,steering)
+        else:
+            camera_image,c_roi = extract_camera(image)
+            minimap_image,m_roi= extract_minimap(image)
         # Append to batch
         X_camera.append(camera_image)
         X_minimap.append(minimap_image)
@@ -74,7 +80,7 @@ def augment(image,steering, viz = False):
     MAX_SHIFT = 16 #pixels
     MAX_ROT = 5 #degrees
     #TODO tune these values
-    STEER_PER_SHIFT =  0.01
+    STEER_PER_SHIFT =  0.005
     STEER_PER_ROT = 0.01
     aug = np.random.randint(5)
     shift = 0
@@ -252,7 +258,7 @@ if __name__=="__main__":
     print("Testing samples: {}".format(test_epoch_size))
 
     # Create generators
-    train_generator = gen(train_bins, batch_size=batch_size)
+    train_generator = gen(train_bins, batch_size=batch_size,augment=True)
     validation_generator = gen(test_bins, batch_size=batch_size)
 
     # checkpoint
